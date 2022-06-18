@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -15,12 +16,10 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.ValueEventListener;
+import com.inhatc.android_vision.View.EmailSearch;
+import com.inhatc.android_vision.View.PasswordSearch;
 import com.inhatc.android_vision.View.visionView;
 import com.inhatc.android_vision.View.MemberJoin;
-import com.inhatc.android_vision.util.DBConn;
 import com.inhatc.android_vision.util.FirebaseLogin;
 import com.kakao.sdk.auth.model.OAuthToken;
 import com.kakao.sdk.user.UserApiClient;
@@ -30,71 +29,61 @@ import kotlin.Unit;
 import kotlin.jvm.functions.Function2;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private Button btnMember;
-    private Button btnLogin;
-    private View kakaoLoginBtn;
-    public static FirebaseAuth mAuth;
 
-    private FirebaseAuth.AuthStateListener firebaseAuthListener;
+        private Button btnMember;
+        private Button btnLogin;
+        private View kakaoLoginBtn;
 
-    EditText edtUserId;
-    EditText edtPassword;
+        private TextView txtIdSearch;
+        private TextView txtPasswordSearch;
 
-    String userId = null;
-    String password = null;
+        EditText edtEmail;
+        EditText edtPassword;
 
-    DBConn conn = null;
+        String email = null;
+        String password = null;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        mAuth = FirebaseAuth.getInstance();
+        //화면 만들기
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_main);
 
-        btnMember=(Button) findViewById(R.id.btnMemberJoin);
-        btnLogin = (Button) findViewById(R.id.btnLogin);
+            btnMember=(Button) findViewById(R.id.btnMemberJoin);
+            btnLogin = (Button) findViewById(R.id.btnLogin);
 
-        edtUserId = (EditText)findViewById(R.id.userId);
-        edtPassword = (EditText)findViewById(R.id.passwd);
+            edtEmail = (EditText)findViewById(R.id.userId);
+            edtPassword = (EditText)findViewById(R.id.passwd);
+            btnMember.setOnClickListener(memberJoin);
+            btnLogin.setOnClickListener(login);
+            kakaoLoginBtn = findViewById(R.id.kakaoLogin);
 
-        btnMember.setOnClickListener(memberJoin);
-        btnLogin.setOnClickListener(login);
+            txtIdSearch = (TextView) findViewById(R.id.txtId);
+            txtPasswordSearch = (TextView) findViewById(R.id.txtPassword);
 
-        kakaoLoginBtn = findViewById(R.id.kakaoLogin);
+            txtIdSearch.setOnClickListener(this);
+            txtPasswordSearch.setOnClickListener(this);
 
-        Function2<OAuthToken, Throwable, Unit> callback = new Function2<OAuthToken, Throwable, Unit>(){
+
+
+            //카카오톡 로그인 토큰 확인하기
+            Function2<OAuthToken, Throwable, Unit> callback = new Function2<OAuthToken, Throwable, Unit>(){
             @Override
             public Unit invoke(OAuthToken oAuthToken, Throwable throwable) {
                 if(oAuthToken != null){
-                    //로그인이 된다
+                    updateKakaoLoginUi();
 
                 }
                 if(throwable != null){
-                    //오류값
+                    return null;
                 }
-                updateKakaoLoginUi();
                 return null;
             }
         };
-
-        firebaseAuthListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser user = firebaseAuth.getCurrentUser();
-                if (user != null) {
-                    Intent intent = new Intent(MainActivity.this, visionView.class);
-                    startActivity(intent);
-                    finish();
-                } else {
-                }
-            }
-        };
-
-
-        kakaoLoginBtn.setOnClickListener(new View.OnClickListener() {
+            kakaoLoginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if(UserApiClient .getInstance().isKakaoTalkLoginAvailable(MainActivity.this)){
@@ -104,151 +93,104 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+            updateKakaoLoginUi();
+        }
 
-        updateKakaoLoginUi();
-    }
-
-    private void updateKakaoLoginUi() {
-        UserApiClient.getInstance().me(new Function2<User, Throwable, Unit>() {
-            @Override
-            public Unit invoke(User user, Throwable throwable) {
-                if(user != null){
-                    Intent imageIntent = new Intent(MainActivity.this, visionView.class);
-                    startActivity(imageIntent);
-                }else{
-                    kakaoLoginBtn.setVisibility(View.VISIBLE);
+        private void updateKakaoLoginUi() {
+            UserApiClient.getInstance().me(new Function2<User, Throwable, Unit>() {
+                @Override
+                public Unit invoke(User user, Throwable throwable) {
+                    if(user != null){
+                        Intent imageIntent = new Intent(MainActivity.this, visionView.class);
+                        FirebaseLogin.mAuth = FirebaseAuth.getInstance();
+                        signInAnonymously();
+                        Toast.makeText(MainActivity.this, "로그인 성공", Toast.LENGTH_SHORT).show();
+                        startActivity(imageIntent);
+                    }else{
+                        kakaoLoginBtn.setVisibility(View.VISIBLE);
+                    }
+                    return null;
                 }
-                return null;
-            }
-        });
-    }
-
-
-    View.OnClickListener memberJoin = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-            Intent i = new Intent(MainActivity.this, MemberJoin.class);
-            startActivityForResult(i, 1);
+            });
         }
-    };
-
-    View.OnClickListener login = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View view) {
-            userId = edtUserId.getText().toString();
-            password = edtPassword.getText().toString();
-
-            System.out.println(userId);
-            loginUser(userId, password);
-
-
-//            conn = new DBConn("memberInfo");
-//            conn.getMyDB_Reference().child(userId).child("password").addValueEventListener(new ValueEventListener() {
-//                @Override
-//                public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                    if(null ==snapshot.getValue()) Toast.makeText(MainActivity.this, "존재하는 아이디가 없습니다.", Toast.LENGTH_LONG).show();
-//                    else {
-//                        String dbPassword = snapshot.getValue().toString();
-//                        if(password.equals(dbPassword)){
-//                            Intent imageIntent = new Intent(MainActivity.this, visionView.class);
-//                            startActivity(imageIntent);
-//
-//                        }else Toast.makeText(MainActivity.this, "비밀번호가 틀렸습니다..", Toast.LENGTH_LONG).show();
-//                    }
-//
-//                }
-//
-//                @Override
-//                public void onCancelled(@NonNull DatabaseError error) {
-//
-//                }
-//            });
-
-        }
-    };
-
-    private void loginUser(String userId, String password) {
-        mAuth.signInWithEmailAndPassword(userId, password).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-            @Override
-            public void onComplete(@NonNull Task<AuthResult> task) {
-                if(task.isSuccessful()){
-                    Toast.makeText(MainActivity.this, "로그인 성공", Toast.LENGTH_SHORT).show();
-                    mAuth.addAuthStateListener(firebaseAuthListener);
-                }else{
-
+    
+        /*파이어베이스 익명 로그인*/
+        private void signInAnonymously() {
+            FirebaseLogin.mAuth.signInAnonymously().addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = FirebaseLogin.mAuth.getCurrentUser();
+                    } else {
+                    }
                 }
+            });
+        }
+
+
+
+        //회원가입
+        View.OnClickListener memberJoin = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(MainActivity.this, MemberJoin.class);
+                startActivity(i);
             }
-        });
-    }
+        };
 
-    @Override
-    protected void onActivityResult(int req, int resultCode, Intent data){
-        super.onActivityResult(req, resultCode, data);
-        if(resultCode == 1){
-            String result = data.getStringExtra("result");
-            Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+
+        //로그인 버튼 이벤트
+        View.OnClickListener login = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                email = edtEmail.getText().toString();
+                password = edtPassword.getText().toString();
+
+                loginUser(email, password);
+
+            }
+        };
+
+
+        
+        //로그인 하기
+        public void loginUser(String email, String password){
+            if(email.isEmpty() || password.isEmpty()){
+                Toast.makeText(MainActivity.this, "이메일 또는 비밀번호가 없습니다.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            FirebaseLogin.mAuth = FirebaseAuth.getInstance();
+            FirebaseLogin.mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if(task.isSuccessful()){
+                        Toast.makeText(MainActivity.this, "로그인 성공", Toast.LENGTH_SHORT).show();
+                        Intent i = new Intent(MainActivity.this, visionView.class);
+                        startActivity(i);
+                    }else{
+                        Toast.makeText(MainActivity.this, "이메일 비밀번호가 틀렸습니다. ", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
         }
-    }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (mAuth != null) {
-            mAuth.removeAuthStateListener(firebaseAuthListener);
+
+        //이메일&비번찾기
+        @Override
+        public  void onClick(View v){
+            Intent i = null;
+            switch (v.getId()){
+
+                case R.id.txtId:
+                    i = new Intent(MainActivity.this, EmailSearch.class);
+                    startActivity(i);
+                    break;
+                case R.id.txtPassword:
+                    i = new Intent(MainActivity.this, PasswordSearch.class);
+                    startActivity(i);
+                    break;
+            }
         }
-    }
-
 
 }
-
-/*
-        kakaoLoginBtn = findViewById(R.id.kakaoLogin);
-        Function2<OAuthToken, Throwable, Unit> callback = new Function2<OAuthToken, Throwable, Unit>(){
-            @Override
-            public Unit invoke(OAuthToken oAuthToken, Throwable throwable) {
-                if(oAuthToken != null){
-                    //로그인이 된다
-
-                }
-                if(throwable != null){
-                    //오류값
-                }
-                updateKakaoLoginUi();
-                return null;
-            }
-        };
-
-        kakaoLoginBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(UserApiClient .getInstance().isKakaoTalkLoginAvailable(MainActivity.this)){
-                    UserApiClient.getInstance().loginWithKakaoTalk(MainActivity.this, callback);
-                }else{
-                    UserApiClient.getInstance().loginWithKakaoAccount(MainActivity.this, callback);
-                }
-            }
-        });
-
-
-
-    private void updateKakaoLoginUi() {
-        UserApiClient.getInstance().me(new Function2<User, Throwable, Unit>() {
-            @Override
-            public Unit invoke(User user, Throwable throwable) {
-                if(user != null){
-                    Intent imageIntent = new Intent(MainActivity.this, ImageView.class);
-                    startActivity(imageIntent);
-                }else{
-                    kakaoLoginBtn.setVisibility(View.VISIBLE);
-                }
-                return null;
-            }
-        });
-    }
- */

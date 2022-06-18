@@ -14,10 +14,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Android_Vision">
         <activity
-            android:name=".View.visionView"
+            android:name=".View.visionViewMap"
             android:exported="false" />
         <activity
-            android:name=".View.ImageView"
+            android:name=".View.PasswordSearch"
+            android:exported="false" />
+        <activity
+            android:name=".View.EmailSearch"
+            android:exported="false" />
+        <activity
+            android:name=".View.visionView"
             android:exported="false" />
         <activity
             android:name=".View.MemberJoin"

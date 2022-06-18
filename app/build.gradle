@@ -2,6 +2,8 @@ plugins {
     id 'com.android.application'
     id 'com.google.gms.google-services'
 }
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
 android {
     compileSdk 32
@@ -13,6 +15,7 @@ android {
         versionCode 1
         versionName "1.0"
 
+        buildConfigField "String", "MAPS_API_KEY", properties['MAPS_API_KEY']
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -43,4 +46,7 @@ dependencies {
     implementation "com.kakao.sdk:v2-user:2.10.0" // 카카오 로그인
 
     implementation 'com.google.code.gson:gson:2.8.6'
+
+    implementation 'com.github.bumptech.glide:glide:4.9.0' // url로 이미지가져오는 라이브러리
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
 }

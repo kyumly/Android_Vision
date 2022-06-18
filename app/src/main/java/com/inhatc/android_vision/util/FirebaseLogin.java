@@ -14,4 +14,10 @@ import com.google.firebase.auth.FirebaseUser;
 import com.inhatc.android_vision.MainActivity;
 
 public class FirebaseLogin extends Activity {
+    public static FirebaseAuth mAuth;
+    //public static FirebaseAuth KakaomAuth;
+
+    public static void FirebaseLogout(){
+        mAuth.signOut();
+    }
 }
